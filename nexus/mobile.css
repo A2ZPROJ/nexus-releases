@@ -1071,12 +1071,20 @@
     box-shadow: 0 6px 20px rgba(0,0,0,.35) !important;
     font-weight: 600 !important;
   }
-  /* a fila do estoque passa a mostrar que rola, como as sub-abas */
+  /* a fila do estoque mostra que rola — ⛔⭐⭐⭐ SEM MASK-IMAGE.
+     08/10/2026: eu tinha posto um degradê de `mask-image` aqui, e ele
+     PRENDIA o botão flutuante: uma máscara num ancestral cria bloco de
+     contenção para `position: fixed` e um contexto de empilhamento, igual
+     ao `transform`. Medido no ar: o botão ficava desenhado, inteiro e
+     opaco em x=224 y=652, mas `elementFromPoint` devolvia a etiqueta
+     "Baixo" da lista — ou seja, pintado ATRÁS dela e surdo ao toque.
+     ⚠⚠ É o MESMO defeito que eu tinha acabado de consertar no
+     `.tab-content` (o `transform: none` logo acima), repetido por mim duas
+     linhas depois. Borda que desbota não vale um botão que não funciona.
+     ⭐ A barrinha de rolagem abaixo já mostra que a fila corre. */
   html body #tab-estoque .page-actions {
     scrollbar-width: thin !important;
     padding-bottom: 6px !important;
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
-    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
   }
   html body #tab-estoque .page-actions::-webkit-scrollbar { display: block !important; height: 3px !important; }
 

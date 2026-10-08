@@ -16,14 +16,14 @@
 
 <!-- Adapter web e login ANTES de tudo: expõem window.electronAPI e __LICENSE__ -->
 <script>window.esc = window.esc || (s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));</script>
-<script src="web-adapter.js?v=20261008b"></script>
-<script src="web-login.js?v=20261008b"></script>
+<script src="web-adapter.js?v=20261008c"></script>
+<script src="web-login.js?v=20261008c"></script>
 
 <!-- CSS responsivo mobile -->
 <!-- ⚠ AO PUBLICAR: troque o ?v= destes tres arquivos. Eles ficaram em
      v=9/v=4/v=3 desde junho e, com a URL igual, o celular servia a copia
      guardada — conserto nenhum chegava em quem ja tinha aberto o site. -->
-  <link rel="stylesheet" href="mobile.css?v=20261008b"/>
+  <link rel="stylesheet" href="mobile.css?v=20261008c"/>
 
 <!-- Libs adicionais que o desktop tem via require() mas precisam de CDN no browser -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -21709,7 +21709,13 @@ body.presenting #presentingBadge { display: flex; }
       const [emps, locs, items, forns, reservas, setores, responsaveis, emUso] = await Promise.all([
         sb.from('estoque_empresas').select('*').order('nome'),
         sb.from('estoque_locais').select('*').order('nome'),
-        sb.from('estoque_items').select('*').order('nome'),
+        // ⛔⭐⭐ 08/10/2026 — SO' O QUE NAO FOI EXCLUIDO.
+        // Os itens de teste apareciam na tela do Lucas apesar de estarem
+        // excluidos no banco (deleted_at gravado): eram 19 consultas a
+        // estoque_items e nenhuma filtrava. O rastro ia para a tabela e a
+        // lista mostrava tudo igual.
+        // ⚠ O relatorio de exclusoes le por funcao propria e continua vendo.
+        sb.from('estoque_items').select('*').is('deleted_at', null).order('nome'),
         sb.from('estoque_fornecedores').select('*').order('nome'),
         sb.from('estoque_reservas').select('*').order('criado_em', { ascending:false }),
         sb.from('estoque_setores').select('*').order('nome'),
@@ -21875,7 +21881,15 @@ body.presenting #presentingBadge { display: flex; }
       }
 
       // Modo de visualização: 'cards' (com foto) ou 'list' (compacto)
-      const viewMode = localStorage.getItem('estoqueViewMode') || (window.matchMedia('(max-width:768px)').matches ? 'list' : 'cards');
+      // ⭐ 08/10/2026 — chave SEPARADA para celular (pedido do Lucas: "as fotos
+      // continuam aparecendo sem eu clicar"). A chave era uma só, então
+      // escolher "com foto" no monitor forçava foto no telefone também.
+      // Agora o telefone começa sem foto e lembra a escolha feita NELE.
+      const _mob = window.matchMedia('(max-width:768px)').matches;
+      const _vmKey = _mob ? 'estoqueViewModeMobile' : 'estoqueViewMode';
+      let viewMode;
+      try { viewMode = localStorage.getItem(_vmKey); } catch (e) { viewMode = null; }
+      if (!viewMode) viewMode = _mob ? 'list' : 'cards';
       if (viewMode === 'list') {
         grid.style.gridTemplateColumns = '1fr';
         grid.style.gap = '6px';
@@ -21897,7 +21911,10 @@ body.presenting #presentingBadge { display: flex; }
     };
 
     window.estoqueSetViewMode = function(mode) {
-      localStorage.setItem('estoqueViewMode', mode);
+      // ⭐ grava na chave do aparelho em que ele está (ver estoqueRender)
+      var k = window.matchMedia('(max-width:768px)').matches
+                ? 'estoqueViewModeMobile' : 'estoqueViewMode';
+      try { localStorage.setItem(k, mode); } catch (e) {}
       window.estoqueRender();
     };
 
