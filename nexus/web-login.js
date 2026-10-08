@@ -20,10 +20,45 @@
 
   function store(){ return window.__webStore; }
 
+  // ⛔⭐⭐⭐ 08/10/2026 — ANTES ISTO LIA `usuarios` COM A CHAVE ANÔNIMA E NÃO
+  //   ACHAVA NINGUÉM. Medido: `GET /rest/v1/usuarios?...` com a anon key devolve
+  //   **[] — zero linhas**, porque a política `u_claim` só libera para
+  //   `authenticated`. Ou seja, o login do celular não validava código NENHUM —
+  //   e a pessoa caía na tela de "Sessão inválida" sem saber por quê.
+  //
+  // ⭐⭐ O caminho certo JÁ EXISTE e é o que o desktop usa
+  //   (`src/app/index.html:291`): entrar pelo Supabase Auth com o e-mail
+  //   sintético `<codigo>@nexus.local` e senha = o próprio código. O gatilho
+  //   `trg_sync_auth_user` espelha todo usuário em `auth.users` — medido em
+  //   08/10: **19 de 19 espelhados, nenhum sem espelho**.
+  //
+  // ⚠ Depois de autenticar, a leitura vai com o TOKEN DA SESSÃO, não com a anon:
+  //   aí o RLS devolve a linha. Guarda o token para o resto do app reusar.
+  function emailDoCodigo(code){
+    return String(code || '').replace(/[^A-Za-z0-9]/g, '').toLowerCase() + '@nexus.local';
+  }
+
   async function queryUser(code){
+    var token = null;
+    try {
+      var auth = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
+        method: 'POST',
+        headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailDoCodigo(code), password: String(code || '') })
+      });
+      if (auth.ok) {
+        var sess = await auth.json();
+        token = sess && sess.access_token;
+        if (token) {
+          window.__NEXUS_TOKEN__ = token;
+          try { window.__webStore && window.__webStore.set('sb_token', token); } catch(e) {}
+        }
+      }
+    } catch(e) { /* sem rede: cai no caminho de baixo e o cache offline resolve */ }
+
     try {
       var r = await fetch(SUPA_URL + '/rest/v1/usuarios?access_code=eq.' + encodeURIComponent(code) + '&limit=1&select=*', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (token || SUPA_KEY) }
       });
       if (!r.ok) return null;
       var users = await r.json();
@@ -39,7 +74,7 @@
       '<div style="width:100%;max-width:420px;background:#0a1224;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px 24px;box-shadow:0 40px 120px rgba(0,0,0,.5)">'+
         '<div style="text-align:center;margin-bottom:22px">'+
           '<div style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">A2Z Projetos</div>'+
-          '<div style="font-size:24px;font-weight:800;color:#f1f5f9;letter-spacing:.5px">NEXUS <span style="font-size:11px;font-weight:500;color:#3b82f6;background:rgba(59,130,246,.12);padding:3px 7px;border-radius:6px;vertical-align:middle;margin-left:4px">MOBILE</span></div>'+
+          '<div style="font-size:24px;font-weight:800;color:#f1f5f9;letter-spacing:.5px"><img src="icons/icon.svg" alt="" width="32" height="32" style="vertical-align:middle;margin-right:8px">Nexus <span style="font-size:11px;font-weight:500;color:#3b82f6;background:rgba(59,130,246,.12);padding:3px 7px;border-radius:6px;vertical-align:middle;margin-left:4px">MOBILE</span></div>'+
           '<div style="font-size:12px;color:#475569;margin-top:4px">Gestão Integrada</div>'+
         '</div>'+
         '<div style="margin-bottom:14px">'+

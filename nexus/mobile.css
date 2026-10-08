@@ -985,3 +985,106 @@
   cursor: pointer;
   padding: 0 6px;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   08/10/2026 — OS TRÊS CONSERTOS DE CELULAR (medidos em 390×664, iPhone 14)
+   Vão no fim de propósito: vencem a cascata sem editar regra que já funciona.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── 1. HISTÓRICO: os filtros voltam a quebrar linha ──────────────────
+     A linha de filtros é `display:flex;gap:8px;flex-wrap:wrap` e tem
+     `<input id="filterDateTo"> + <button>` adjacentes, então caía na exceção
+     `:has(> input + button)` (linha ~149) que força `nowrap`. Medido: os
+     selects #filterCompany e #filterProject ficavam com 28 px — só o chevron —
+     e o botão parava em 471 px, fora da tela de 390.
+     ⭐ A exceção continua valendo para busca de verdade (um input + um botão);
+     aqui só devolvemos a quebra onde há select junto. */
+  html body [style*="display:flex"][style*="gap"]:has(> select):has(> input + button),
+  html body [style*="display: flex"][style*="gap"]:has(> select):has(> input + button) {
+    flex-wrap: wrap !important;
+  }
+  html body [style*="display:flex"][style*="gap"]:has(> select):has(> input + button) > select,
+  html body [style*="display: flex"][style*="gap"]:has(> select):has(> input + button) > select {
+    flex: 1 1 140px !important;
+    min-width: 140px !important;
+    width: auto !important;
+  }
+  html body [style*="display:flex"][style*="gap"]:has(> select):has(> input + button) > input,
+  html body [style*="display: flex"][style*="gap"]:has(> select):has(> input + button) > input {
+    flex: 1 1 130px !important;
+    min-width: 130px !important;
+  }
+
+  /* ── 2. SUB-ABAS que rolam de lado, com aviso de que continua ─────────
+     Relatórios (.rel-sub-btn) terminava em 768 px; Orçamento (.orc-subtab) em
+     411 px e o segmento #orc-sub-tabelas em 458 px. Nenhum rolava.
+     ⭐ Mesmo molde do `.page-actions` que já existe aqui (linha ~619) — mas
+     SEM esconder a barra, e com um fade na borda direita, senão ninguém
+     descobre que há mais coisa. */
+  html body :has(> .rel-sub-btn),
+  html body :has(> .orc-subtab),
+  html body #orc-sub-tabelas {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding-bottom: 6px !important;
+    /* o fade mostra que a fila continua para a direita */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+  }
+  html body :has(> .rel-sub-btn)::-webkit-scrollbar,
+  html body :has(> .orc-subtab)::-webkit-scrollbar,
+  html body #orc-sub-tabelas::-webkit-scrollbar { height: 3px !important; }
+  html body :has(> .rel-sub-btn)::-webkit-scrollbar-thumb,
+  html body :has(> .orc-subtab)::-webkit-scrollbar-thumb,
+  html body #orc-sub-tabelas::-webkit-scrollbar-thumb {
+    background: var(--border, #334155) !important; border-radius: 3px !important;
+  }
+  html body .rel-sub-btn,
+  html body .orc-subtab,
+  html body #orc-sub-tabelas > * {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    min-height: 44px !important;   /* alvo de toque */
+  }
+
+  /* ── 3. ESTOQUE: a ação principal sai da fila e vira botão flutuante ──
+     Medido: `.page-actions` do estoque tem 1.890 px de fila com a barra
+     escondida, e "+ Adicionar item" é a 14ª pílula — a ~1.900 px à direita.
+     ⭐ O botão continua sendo O MESMO elemento (nada de botão novo que possa
+     divergir do original): ele só é reposicionado no celular. */
+  html body #tab-estoque .page-actions > button[onclick*="estoqueAddItem"] {
+    position: fixed !important;
+    right: 16px !important;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+    z-index: 900 !important;
+    width: auto !important;
+    min-height: 52px !important;
+    padding: 0 20px !important;
+    border-radius: 26px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,.35) !important;
+    font-weight: 600 !important;
+  }
+  /* a fila do estoque passa a mostrar que rola, como as sub-abas */
+  html body #tab-estoque .page-actions {
+    scrollbar-width: thin !important;
+    padding-bottom: 6px !important;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+  }
+  html body #tab-estoque .page-actions::-webkit-scrollbar { display: block !important; height: 3px !important; }
+
+  /* ⛔⭐⭐⭐ 08/10/2026 — O QUE QUEBRAVA O BOTÃO FLUTUANTE DO ESTOQUE.
+     `.tab-content` tem `transform: matrix(1,0,0,1,0,6)` (a animação de entrada
+     da aba). **Transform em ancestral vira bloco de contenção do `position:fixed`**:
+     o botão deixa de se ancorar na tela e passa a se ancorar naquele div — medido,
+     ele ia parar em y=2149 numa tela de 664 px, ou seja, invisível.
+     ⭐ No celular a animação de entrada não faz falta e ainda custa quadro. */
+  html body .tab-content { transform: none !important; }
+}

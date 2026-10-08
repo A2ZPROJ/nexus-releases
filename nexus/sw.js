@@ -7,8 +7,8 @@
  *  - Nunca intercepta chamadas Supabase nem CDN de libs (deixa passar)
  * ============================================================ */
 
-const VERSION = 'nexus-web-v4-2026-04-28-moj2elhl';
-const SHELL_CACHE = 'nexus-shell-' + VERSION;
+const VERSION = 'nexus-web-marca-2026-09-27';
+const SHELL_CACHE = 'nexus-2026-10-08a' + VERSION;
 const ASSET_CACHE = 'nexus-assets-' + VERSION;
 
 const SHELL_URLS = [
@@ -20,6 +20,7 @@ const SHELL_URLS = [
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-maskable.svg',
+  './icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {

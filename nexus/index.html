@@ -11,7 +11,7 @@
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="apple-touch-icon" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Nexus — A2Z Projetos</title>
 
 <!-- Adapter web e login ANTES de tudo: expõem window.electronAPI e __LICENSE__ -->
@@ -1186,7 +1186,8 @@
       </table>`;
     const css2 = `<style>table.info2{width:100%;border-collapse:collapse;border:1px solid #94a3b8;margin-bottom:8px}table.info2 td{padding:4px 9px;border:1px solid #94a3b8;font-size:10.5px}table.info2 td.lbl{background:#e2e8f0;font-weight:700;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;width:90px;white-space:nowrap}body{position:relative}.draft-wm{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9999}.draft-wm span{font-size:160px;font-weight:900;color:rgba(220,38,38,.18);transform:rotate(-30deg);letter-spacing:8px;border:8px solid rgba(220,38,38,.22);padding:18px 60px;border-radius:12px;font-family:Arial,sans-serif}@media print{.draft-wm{position:fixed!important}}</style>`;
     const draftWm = isDraft ? `<div class="draft-wm"><span>RASCUNHO</span></div>` : '';
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GRD ${grdNumFmt}${isDraft?' (RASCUNHO)':''}</title>${css}${css2}</head><body>${draftWm}<div class="grd-header"><div class="grd-logo-box">${logoEsqHtml}</div><div class="grd-title">GUIA DE REMESSA DE DOCUMENTOS</div><div class="grd-logo-box" style="text-align:right">${logoDirHtml}</div></div><table class="info-table"><tr><td class="lbl">Projeto</td><td style="font-size:12px;font-weight:600" colspan="2">${projNome}</td><td class="lbl" style="text-align:center">Número</td><td class="num">${grdNumFmt}</td></tr><tr><td class="lbl">Cliente</td><td colspan="2">${cliente}</td><td class="lbl" style="text-align:center">Data</td><td class="dt">${dataFmt}</td></tr><tr><td class="lbl">Local</td><td colspan="4">${local}</td></tr></table>${infoProjeto}<div class="banner"><span>RELAÇÃO DE DOCUMENTOS EMITIDOS VIA GRD N°</span><span>${grdNumFmt}</span></div><table class="docs"><thead><tr><th style="width:34%">Número do Documento</th><th style="width:8%">Revisão</th><th>Descrição / Título</th><th style="width:8%">Formato</th></tr></thead><tbody>${tableRows||'<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:16px">Nenhum documento selecionado</td></tr>'}</tbody></table>${equipeSection}<div class="footer">Gerado pelo Nexus · ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GRD ${grdNumFmt}${isDraft?' (RASCUNHO)':''}</title>${css}${css2}  <!-- publicado em 2026-10-08 por Claude: login via Supabase Auth + timer de 8s nao apaga mais o login -->
+</head><body>${draftWm}<div class="grd-header"><div class="grd-logo-box">${logoEsqHtml}</div><div class="grd-title">GUIA DE REMESSA DE DOCUMENTOS</div><div class="grd-logo-box" style="text-align:right">${logoDirHtml}</div></div><table class="info-table"><tr><td class="lbl">Projeto</td><td style="font-size:12px;font-weight:600" colspan="2">${projNome}</td><td class="lbl" style="text-align:center">Número</td><td class="num">${grdNumFmt}</td></tr><tr><td class="lbl">Cliente</td><td colspan="2">${cliente}</td><td class="lbl" style="text-align:center">Data</td><td class="dt">${dataFmt}</td></tr><tr><td class="lbl">Local</td><td colspan="4">${local}</td></tr></table>${infoProjeto}<div class="banner"><span>RELAÇÃO DE DOCUMENTOS EMITIDOS VIA GRD N°</span><span>${grdNumFmt}</span></div><table class="docs"><thead><tr><th style="width:34%">Número do Documento</th><th style="width:8%">Revisão</th><th>Descrição / Título</th><th style="width:8%">Formato</th></tr></thead><tbody>${tableRows||'<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:16px">Nenhum documento selecionado</td></tr>'}</tbody></table>${equipeSection}<div class="footer">Gerado pelo Nexus · ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
   };
 
   window._setPreviewMode = (mode, title) => {
@@ -3199,8 +3200,26 @@
   // Espera o evento nexus:login-ok do web-login antes de rodar init.
   if (window.__NEXUS_WEB__ && !window.__LICENSE__) {
     window.addEventListener('nexus:login-ok', () => init(), { once: true });
-    // Fallback: se nada aconteceu em 8s, roda mesmo assim (vai mostrar Sessão inválida ou login overlay)
-    setTimeout(() => { if (!window.__LICENSE__) init(); }, 8000);
+    // ⛔⭐⭐⭐ 08/10/2026 — ESTE TEMPORIZADOR APAGAVA O LOGIN DA PESSOA.
+    //   Antes era `setTimeout(() => { if (!window.__LICENSE__) init(); }, 8000)`,
+    //   e o `init()` sem licença SUBSTITUI O CORPO INTEIRO da página pela tela
+    //   "Sessão inválida" — inclusive o formulário onde a pessoa estava digitando.
+    //   O próprio comentário antigo admitia ("vai mostrar Sessão inválida ou
+    //   login overlay"). Foi exatamente o que apareceu no iPhone do Lucas às
+    //   09:22 de 08/10, e o Codex reproduziu em Node com DOM e tempo simulados.
+    //   ⚠ Pior: depois de 60 min parado o app desloga, apaga a licença e
+    //   recarrega — caindo de novo aqui. É o "cai muito, trava muito".
+    //
+    // ⭐ Agora: se o formulário de login está na tela, NÃO apaga nada. Quem
+    //   some com o formulário é o login dando certo (`finalize` -> nexus:login-ok).
+    setTimeout(() => {
+      if (window.__LICENSE__) return;                       // já entrou
+      if (document.getElementById('web-login-overlay')) {    // está digitando: deixa em paz
+        console.warn('[boot] 8s sem licença, mas o login está na tela — não vou apagá-lo.');
+        return;
+      }
+      init();                                                // sem login na tela: aí sim
+    }, 8000);
   } else {
     init();
   }
@@ -6152,14 +6171,7 @@ body.presenting #presentingBadge { display: flex; }
   <div class="auth-left">
     <div class="auth-brand">
       <div class="auth-brand-logo">
-        <svg width="40" height="40" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="32" height="32" rx="8" fill="#0f172a"/>
-          <rect x="4" y="4" width="10" height="24" rx="2.5" fill="#2563eb"/>
-          <rect x="16" y="4" width="12" height="5" rx="2" fill="#2563eb"/>
-          <rect x="16" y="11" width="12" height="5" rx="2" fill="#2563eb"/>
-          <rect x="16" y="18" width="12" height="5" rx="2" fill="#2563eb"/>
-          <rect x="16" y="25" width="8" height="3" rx="1.5" fill="#60a5fa"/>
-        </svg>
+        <svg width="40" height="40" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="16" fill="#0f172a"/><g transform="translate(8.6 9.1) scale(.72)"><path d="M10 55V12Q10 7 14 12L42 51Q46 56 46 50V9" fill="none" stroke="#2563EB" stroke-width="7" stroke-linecap="butt" stroke-linejoin="round"/><path d="M20 55V29L50 55Q56 59 56 51V9" fill="none" stroke="#2563EB" stroke-width="7" stroke-linecap="butt" stroke-linejoin="round"/><path d="M20 55V29L50 55Q56 59 56 51V9" fill="none" stroke="#06B6D4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round"/></g></svg>
         <span class="auth-brand-name">Nexus</span>
       </div>
       <div class="auth-headline">Gestão de<strong>Projetos &<br>Documentos</strong></div>
@@ -6246,15 +6258,9 @@ body.presenting #presentingBadge { display: flex; }
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">
         <div class="sidebar-brand-logo">
-          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="3" width="11" height="26" rx="3" fill="#2563eb"/>
-            <rect x="16" y="3" width="13" height="5" rx="2" fill="#2563eb"/>
-            <rect x="16" y="10" width="13" height="5" rx="2" fill="#2563eb"/>
-            <rect x="16" y="17" width="13" height="5" rx="2" fill="#2563eb"/>
-            <rect x="16" y="24" width="9" height="5" rx="2" fill="#60a5fa"/>
-          </svg>
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 55V12Q10 7 14 12L42 51Q46 56 46 50V9" fill="none" stroke="#2563EB" stroke-width="7" stroke-linecap="butt" stroke-linejoin="round"/><path d="M20 55V29L50 55Q56 59 56 51V9" fill="none" stroke="#2563EB" stroke-width="7" stroke-linecap="butt" stroke-linejoin="round"/><path d="M20 55V29L50 55Q56 59 56 51V9" fill="none" stroke="#06B6D4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round"/></svg>
         </div>
-        <div class="sidebar-brand-text">Ne<span class="x-accent">x</span>us</div>
+        <div class="sidebar-brand-text">Nexus</div>
       </div>
       <nav class="sidebar-nav" id="sidebarNav">
         <button class="sb-item active" data-tab="generator" data-label="Cadastrar Novo Código" data-requires-online="1" onclick="switchTab('generator',this)">
@@ -13713,16 +13719,10 @@ body.presenting #presentingBadge { display: flex; }
       <div style="background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden;margin-top:20px">
         <div style="padding:28px 28px 20px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--border)">
           <div style="width:72px;height:72px;display:flex;align-items:center;justify-content:center;flex-shrink:0;filter:drop-shadow(0 8px 20px rgba(37,99,235,.35))">
-            <svg width="72" height="72" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="3" width="11" height="26" rx="3" fill="#2563eb"/>
-              <rect x="16" y="3" width="13" height="5" rx="2" fill="#2563eb"/>
-              <rect x="16" y="10" width="13" height="5" rx="2" fill="#2563eb"/>
-              <rect x="16" y="17" width="13" height="5" rx="2" fill="#2563eb"/>
-              <rect x="16" y="24" width="9" height="5" rx="2" fill="#60a5fa"/>
-            </svg>
+            <svg width="72" height="72" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 55V12Q10 7 14 12L42 51Q46 56 46 50V9" fill="none" stroke="#2563EB" stroke-width="7" stroke-linecap="butt" stroke-linejoin="round"/><path d="M20 55V29L50 55Q56 59 56 51V9" fill="none" stroke="#2563EB" stroke-width="7" stroke-linecap="butt" stroke-linejoin="round"/><path d="M20 55V29L50 55Q56 59 56 51V9" fill="none" stroke="#06B6D4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round"/></svg>
           </div>
           <div>
-            <div style="font-size:24px;font-weight:800;color:var(--text);line-height:1.1;letter-spacing:-.5px;font-family:'DM Sans',sans-serif">Ne<span style="color:#60a5fa">x</span>us</div>
+            <div style="font-size:24px;font-weight:800;color:var(--text);line-height:1.1;letter-spacing:-.5px;font-family:'DM Sans',sans-serif">Nexus</div>
             <div style="font-size:13px;color:var(--text2);margin-top:3px">Gestão Integrada</div>
             <div style="font-size:12px;color:var(--text3);margin-top:2px">A2Z Projetos · 2S Engenharia</div>
           </div>
