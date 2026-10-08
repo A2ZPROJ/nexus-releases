@@ -40,21 +40,57 @@
 
   async function queryUser(code){
     var token = null;
+    // ⭐⭐⭐ 08/10/2026 — A SESSAO TEM DE FICAR NO CLIENTE `sb`, NAO NUMA VARIAVEL.
+    //   Na 1a versao deste conserto eu autentiquei com um fetch solto e guardei o
+    //   token em window.__NEXUS_TOKEN__. Mas quem faz TODAS as consultas do app e'
+    //   o cliente `sb` (index.html:49, criado com a chave anonima) — e ele nunca
+    //   ficou sabendo. O login passava e, logo depois, o init() rodava
+    //       sb.from('usuarios').select('*').eq('id', lic.id).single()
+    //   como ANONIMO, recebia vazio e mostrava
+    //       "Usuário não encontrado. Contate o administrador."
+    //   Deu com o Lucas E com o Daniel: nao era conta, era cliente sem sessao.
+    //   ⭐ `sb.auth.signInWithPassword` e' o que o desktop faz desde sempre
+    //   (src/app/index.html:292): a sessao fica DENTRO do cliente.
     try {
-      var auth = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
-        method: 'POST',
-        headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailDoCodigo(code), password: String(code || '') })
-      });
-      if (auth.ok) {
-        var sess = await auth.json();
-        token = sess && sess.access_token;
-        if (token) {
+      if (window.sb && window.sb.auth && window.sb.auth.signInWithPassword) {
+        var r = await window.sb.auth.signInWithPassword({
+          email: emailDoCodigo(code), password: String(code || '')
+        });
+        if (!r.error && r.data && r.data.session) {
+          token = r.data.session.access_token;
           window.__NEXUS_TOKEN__ = token;
-          try { window.__webStore && window.__webStore.set('sb_token', token); } catch(e) {}
+        } else if (r.error) {
+          console.warn('[login] auth recusou:', r.error.message);
         }
       }
-    } catch(e) { /* sem rede: cai no caminho de baixo e o cache offline resolve */ }
+    } catch(e) { console.warn('[login] auth falhou:', e && e.message); }
+
+    // plano B: sem o cliente pronto, autentica na mao E EMPURRA a sessao para ele
+    if (!token) {
+      try {
+        var auth = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
+          method: 'POST',
+          headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailDoCodigo(code), password: String(code || '') })
+        });
+        if (auth.ok) {
+          var sess = await auth.json();
+          token = sess && sess.access_token;
+          if (token) {
+            window.__NEXUS_TOKEN__ = token;
+            try { window.__webStore && window.__webStore.set('sb_token', token); } catch(e) {}
+            // ⭐ sem isto, o app volta a consultar como anonimo
+            try {
+              if (window.sb && window.sb.auth && window.sb.auth.setSession) {
+                await window.sb.auth.setSession({
+                  access_token: token, refresh_token: sess.refresh_token
+                });
+              }
+            } catch(e) { console.warn('[login] setSession falhou:', e && e.message); }
+          }
+        }
+      } catch(e) { /* sem rede: o cache offline resolve */ }
+    }
 
     try {
       var r = await fetch(SUPA_URL + '/rest/v1/usuarios?access_code=eq.' + encodeURIComponent(code) + '&limit=1&select=*', {
