@@ -16,14 +16,14 @@
 
 <!-- Adapter web e login ANTES de tudo: expõem window.electronAPI e __LICENSE__ -->
 <script>window.esc = window.esc || (s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));</script>
-<script src="web-adapter.js?v=20261008c"></script>
-<script src="web-login.js?v=20261008c"></script>
+<script src="web-adapter.js?v=20261008d"></script>
+<script src="web-login.js?v=20261008d"></script>
 
 <!-- CSS responsivo mobile -->
 <!-- ⚠ AO PUBLICAR: troque o ?v= destes tres arquivos. Eles ficaram em
      v=9/v=4/v=3 desde junho e, com a URL igual, o celular servia a copia
      guardada — conserto nenhum chegava em quem ja tinha aberto o site. -->
-  <link rel="stylesheet" href="mobile.css?v=20261008c"/>
+  <link rel="stylesheet" href="mobile.css?v=20261008d"/>
 
 <!-- Libs adicionais que o desktop tem via require() mas precisam de CDN no browser -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -19353,6 +19353,7 @@ body.presenting #presentingBadge { display: flex; }
           <button onclick="window.estoqueImportarXLSX()" title="Importar itens em massa via planilha" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">📥 Importar</button>
           <button onclick="window.estoqueInventario()" title="Inventário (contagem física)" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">📑 Inventário</button>
           <button onclick="window.estoqueScanQR()" title="Ler QR code com a câmera" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">📷 Ler QR</button>
+          <button onclick="window.estoqueExcluidos()" title="Itens excluídos — quem, quando e por quê" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-family:inherit;font-size:12px;cursor:pointer">🗑 Excluídos</button>
           <button onclick="window.estoqueEtiquetas()" title="Imprimir etiquetas com QR" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">🏷️ Etiquetas</button>
           <button onclick="window.estoqueAddItem()" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">+ Adicionar item</button>
           <div style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-left:auto" title="Modo de visualização">
@@ -21987,7 +21988,12 @@ body.presenting #presentingBadge { display: flex; }
           <button class="action-btn" onclick="window.estoqueMov('${esc(it.id)}','retirada')" style="background:#FEE2E2;color:#7F1D1D;font-weight:600;font-size:11px;padding:6px 10px;min-height:34px">−</button>
           <button class="action-btn" onclick="window.estoqueMov('${esc(it.id)}','reposicao')" style="background:#D1FAE5;color:#065F46;font-weight:600;font-size:11px;padding:6px 10px;min-height:34px">+</button>
         </div>
-        <button class="action-btn" onclick="window.estoqueEdit('${esc(it.id)}')" style="background:var(--surface2);color:var(--text);font-weight:600;font-size:11px;padding:6px 10px;min-height:34px;flex-shrink:0">⋯</button>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+          <button class="action-btn" onclick="window.estoqueEdit('${esc(it.id)}')" title="Editar" style="background:var(--surface2);color:var(--text);font-weight:600;font-size:11px;padding:6px 10px;min-height:34px">⋯</button>
+          <!-- ⭐ 08/10/2026 — o Excluir existia só na visão de cards, e o celular
+               usa a LISTA: era por isso que o Lucas não achava o botão. -->
+          <button class="action-btn" onclick="window.estoqueDelItem('${esc(it.id)}')" title="Excluir (pede o motivo e fica registrado)" style="background:#FEE2E2;color:#7F1D1D;font-weight:600;font-size:11px;padding:6px 10px;min-height:34px">🗑</button>
+        </div>
       </div>`;
     };
 
@@ -22403,12 +22409,15 @@ body.presenting #presentingBadge { display: flex; }
         md.querySelectorAll('.estq-comp-del').forEach(b => b.onclick = async () => {
           const c = comps.find(x => x.id === b.dataset.cid);
           if (!c) return;
-          if (!await nexusConfirm(`Excluir o componente "${c.nome}"?\n\nIsso é PERMANENTE e remove fotos + histórico de movimentações deste componente.`)) return;
-          const { error } = await sb.from('estoque_items').delete().eq('id', c.id);
-          if (error) { nexusAlert('Erro: ' + error.message); return; }
-          window.toastSuccess?.('Componente removido');
+          // ⭐ 08/10/2026 — o componente é linha da MESMA tabela `estoque_items`
+          // (só com `parent_id`), e antes saía pelo caminho destrutivo:
+          // `delete()`, "é PERMANENTE e remove fotos + histórico". Um componente
+          // apagado assim NÃO apareceria no relatório de exclusões — o furo
+          // esvaziava o rastro que o Lucas pediu.
+          // ⭐⭐ Reuso o `estoqueDelItem`: ele já pede o motivo, confere a
+          // permissão (só Gestor) e grava quem/quando/por quê. Nada novo.
+          await window.estoqueDelItem(c.id);
           await refreshComponentes();
-          await window.estoqueLoad();
         });
       }
 
@@ -23139,20 +23148,146 @@ body.presenting #presentingBadge { display: flex; }
       // (click fora não fecha — só botão Fechar/Cancelar)
     };
 
+    // ⛔⭐⭐⭐ 08/10/2026 — EXCLUIR DEIXOU DE APAGAR.
+    //   Pedido do Lucas: *"precisamos deixar uma espécie de rastro... usuário
+    //   que excluiu, data, hora, e o motivo"*.
+    //   Antes isto fazia `sb.from('estoque_items').delete()` e a própria
+    //   mensagem avisava: "é PERMANENTE e remove também todas as fotos e o
+    //   histórico de movimentações". Ou seja, o item saía sem deixar nada —
+    //   e as movimentações, que são o histórico do almoxarifado, iam junto.
+    //   ⭐ Agora quem exclui é `estoque_excluir_item` no banco: ela marca
+    //   `deleted_at` + quem + o motivo, **preserva as movimentações**, grava em
+    //   `auditoria_eventos` e só aceita o Gestor do almoxarifado.
+    //   ⭐⭐ E por não ser mais destrutivo, dá para DESFAZER (estoqueRestaurarItem).
     window.estoqueDelItem = async function(itemId) {
       const it = _estoqueItems.find(x => x.id === itemId);
       if (!it) return;
+
       const subsCount = _estoqueItems.filter(x => x.parent_id === itemId).length;
       const aviso = subsCount > 0
-        ? `\n\nEste item tem ${subsCount} componente${subsCount===1?'':'s'} que também ${subsCount===1?'será excluído':'serão excluídos'}.`
+        ? `\n\n⚠ Este item tem ${subsCount} componente${subsCount===1?'':'s'}. ${subsCount===1?'Ele continua':'Eles continuam'} no cadastro — só este item sai da lista.`
         : '';
-      const msg = `Tem certeza que deseja excluir o item "${it.nome}"?${aviso}\n\nIsso é PERMANENTE e remove também todas as fotos e o histórico de movimentações deste item.`;
-      if (!await nexusConfirm(msg)) return;
-      const { error } = await sb.from('estoque_items').delete().eq('id', itemId);
-      if (error) { nexusAlert('Erro: ' + error.message); return; }
-      window.toastSuccess?.('Item removido');
-      // Fecha modal pai se houver
+
+      // ⭐ o motivo é OBRIGATÓRIO (o banco recusa com menos de 3 letras):
+      // é ele que faz o rastro valer alguma coisa no relatório.
+      const motivo = await nexusPrompt(
+        `Excluir "${it.nome}" (${it.codigo || it.sku || 'sem código'}).${aviso}\n\n` +
+        `Por que está sendo excluído? Isto fica registrado com o seu nome, a data e a hora.`,
+        '', 'Motivo da exclusão');
+      if (motivo === null) return;                       // cancelou
+      if (!String(motivo).trim() || String(motivo).trim().length < 3) {
+        nexusAlert('Informe o motivo da exclusão (pelo menos 3 letras).');
+        return;
+      }
+
+      const code = window._currentUserData?.access_code;
+      const { data, error } = await sb.rpc('estoque_excluir_item', {
+        p_caller_code: code, p_item_id: itemId, p_motivo: String(motivo).trim()
+      });
+      if (error) {
+        // ⚠ a mensagem do banco é em português e explica o caso (sem permissão,
+        // item de outra empresa, já excluído) — mostrar ela, não um genérico.
+        nexusAlert(error.message || 'Não consegui excluir.');
+        return;
+      }
+
+      const movs = data && data.movimentos_preservados;
+      window.toastSuccess?.('Item excluído' + (movs ? ' — ' + movs + ' movimenta' +
+        (movs === 1 ? 'ção' : 'ções') + ' preservada' + (movs === 1 ? '' : 's') : ''));
       document.querySelectorAll('div[data-estq-modal]').forEach(ov => ov.remove());
+      await window.estoqueLoad();
+    };
+
+
+    // ⭐⭐ 08/10/2026 — O RELATÓRIO DE EXCLUSÕES.
+    //   Pedido do Lucas: *"na hora de emitir um relatório vai aparecer os itens
+    //   excluídos tbm, usuário que excluiu, data, hora, e o motivo"*.
+    //   ⛔ A função `estoque_itens_excluidos` já estava no banco mas o app NÃO a
+    //   chamava em lugar nenhum: o rastro era gravado e não tinha onde ser lido.
+    //   ⭐ Lê por função SECURITY DEFINER de propósito — a lista do almoxarifado
+    //   agora filtra `deleted_at`, então os excluídos só aparecem por aqui.
+    window.estoqueExcluidos = async function() {
+      const code = window._currentUserData?.access_code;
+      const { data, error } = await sb.rpc('estoque_itens_excluidos', {
+        p_caller_code: code, p_de: null, p_ate: null
+      });
+      if (error) { nexusAlert(error.message || 'Não consegui ler os excluídos.'); return; }
+      const linhas = Array.isArray(data) ? data : [];
+
+      const fmt = function (d) {
+        if (!d) return '—';
+        try {
+          const x = new Date(d);
+          return x.toLocaleDateString('pt-BR') + ' ' +
+                 x.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return String(d); }
+      };
+
+      const corpo = linhas.length
+        // ⭐ os nomes conferidos na própria função do banco:
+        //   item_id · codigo · nome · excluido_em · excluido_por · motivo · movimentos
+        ? linhas.map(function (r) {
+            const q = String.fromCharCode(39);
+            const nome = esc(r.nome || '—');
+            const cod  = esc(r.codigo || '—');
+            const quem = esc(r.excluido_por || '—');
+            const mot  = esc(r.motivo || '—');
+            const qdo  = fmt(r.excluido_em);
+            const mv   = Number(r.movimentos || 0);
+            return '<tr style="border-bottom:1px solid var(--border)">' +
+              '<td style="padding:8px 10px"><div style="font-weight:600;font-size:13px">' + nome + '</div>' +
+                '<div style="font-family:' + q + 'DM Mono' + q +
+                ',monospace;font-size:11px;color:var(--accent)">' + cod +
+                (mv ? ' · <span style="color:var(--text3);font-family:inherit">' + mv +
+                      ' movimenta' + (mv === 1 ? 'ção' : 'ções') + ' guardada' +
+                      (mv === 1 ? '' : 's') + '</span>' : '') + '</div></td>' +
+              '<td style="padding:8px 10px;font-size:12px">' + quem + '</td>' +
+              '<td style="padding:8px 10px;font-size:12px;white-space:nowrap">' + qdo + '</td>' +
+              '<td style="padding:8px 10px;font-size:12px;color:var(--text2)">' + mot + '</td>' +
+              '<td style="padding:8px 10px;text-align:right"><button class="action-btn" onclick="window.estoqueRestaurarItem(' +
+                q + esc(r.item_id) + q + ',' + q + String(r.nome || '').replace(/['"\\]/g, '') + q +
+                ')" style="font-size:11px;padding:5px 10px">Trazer de volta</button></td></tr>';
+          }).join('')
+        : '<tr><td colspan="5" style="padding:22px;text-align:center;color:var(--text3);font-size:13px">' +
+          'Nenhum item foi excluído.</td></tr>';
+
+      const ov = document.createElement('div');
+      ov.setAttribute('data-estq-modal', '1');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99998;display:flex;' +
+                         'align-items:center;justify-content:center;padding:16px';
+      ov.innerHTML =
+        '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;' +
+        'max-width:920px;width:100%;max-height:86vh;display:flex;flex-direction:column;overflow:hidden">' +
+          '<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;' +
+          'align-items:center;justify-content:space-between;gap:12px">' +
+            '<div><div style="font-size:15px;font-weight:700">Itens excluídos</div>' +
+            '<div style="font-size:12px;color:var(--text3)">' + linhas.length +
+            (linhas.length === 1 ? ' item' : ' itens') +
+            ' · as movimentações de cada um foram preservadas</div></div>' +
+            '<button id="exclFechar" class="action-btn" style="font-size:12px;padding:6px 14px">Fechar</button>' +
+          '</div>' +
+          '<div style="overflow:auto;flex:1"><table style="width:100%;border-collapse:collapse">' +
+            '<thead><tr style="background:var(--surface2);position:sticky;top:0">' +
+              '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3)">Item</th>' +
+              '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3)">Quem excluiu</th>' +
+              '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3)">Data e hora</th>' +
+              '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text3)">Motivo</th>' +
+              '<th></th></tr></thead><tbody>' + corpo + '</tbody></table></div>' +
+        '</div>';
+      document.body.appendChild(ov);
+      const fechar = function () { ov.remove(); };
+      ov.querySelector('#exclFechar').onclick = fechar;
+      ov.onclick = function (e) { if (e.target === ov) fechar(); };
+    };
+
+    // ⭐ Desfazer: só existe porque a exclusão deixou de ser destrutiva.
+    window.estoqueRestaurarItem = async function(itemId, nome) {
+      if (!await nexusConfirm('Trazer "' + (nome || 'este item') + '" de volta para a lista?')) return;
+      const { error } = await sb.rpc('estoque_restaurar_item', {
+        p_caller_code: window._currentUserData?.access_code, p_item_id: itemId
+      });
+      if (error) { nexusAlert(error.message || 'Não consegui restaurar.'); return; }
+      window.toastSuccess?.('Item de volta na lista');
       await window.estoqueLoad();
     };
 
