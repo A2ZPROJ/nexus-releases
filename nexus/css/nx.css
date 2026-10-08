@@ -1,0 +1,355 @@
+/* ══════════════════════════════════════════════════════════════════════
+   NX — sistema visual do Nexus (23/08/2026)
+   ══════════════════════════════════════════════════════════════════════
+
+   POR QUE ISTO EXISTE
+   O mesmo componente tinha dois desenhos em abas diferentes: o cartão de
+   indicador do Dashboard vinha com ícone colorido e "canto dobrado", o dos
+   Lembretes vinha sem nada disso. Cada tela, isolada, estava boa — o que
+   faltava era UMA definição que as duas obedecessem. Este arquivo é essa
+   definição.
+
+   ⚠⚠ TUDO AQUI É ESCOPADO POR `.nx`
+   O index.html tem ~42 mil linhas e as 31 abas dividem o MESMO CSS global.
+   Um seletor solto aqui vazaria nas outras 30 abas. Por isso toda regra
+   começa em `.nx` — só o container que optar por entrar recebe o estilo.
+   É o mesmo efeito do postcss-prefixwrap, feito à mão e legível.
+   Enquanto uma aba não tiver a classe `nx`, ela continua EXATAMENTE como era.
+
+   ⭐ CONSTRUÍDO SOBRE OS TOKENS QUE JÁ EXISTEM
+   Reaproveita --surface, --border, --text, --text2, --text3, --green, --red,
+   --amber do :root do index.html. Não redefine cor de tema — é por isso que
+   o modo escuro continua funcionando sem nenhum trabalho extra.
+
+   AS TRÊS REGRAS
+   1. Cor é para DESVIO, não para categoria. Um cartão só ganha cor quando
+      pede alguma coisa de você; zerado, volta a ser neutro sozinho.
+   2. Um componente por função. Um cartão de indicador, um estado vazio,
+      um botão primário.
+   3. Densidade sem perder informação: o que encolhe é o vazio.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.nx {
+  /* escala de densidade — os números da proposta de 23/08 */
+  --nx-gap: 16px;           /* era 24 entre blocos */
+  --nx-gap-sm: 10px;
+  --nx-field-h: 38px;       /* era 44 */
+  --nx-radius: 8px;
+  --nx-radius-sm: 6px;
+
+  /* tipografia: tamanho e peso fazem a hierarquia — não a caixa alta */
+  --nx-fs-title: 20px;
+  --nx-fs-sub: 12.5px;
+  --nx-fs-body: 13px;
+  --nx-fs-label: 12px;
+  --nx-fs-micro: 10.5px;
+  --nx-fs-value: 27px;
+}
+
+/* ── cabeçalho da aba ──────────────────────────────────────────────────
+   Era ~95px até o primeiro dado. Aqui fica em ~56px, sem tirar nada:
+   título e subtítulo continuam, só param de flutuar em tanto espaço. */
+.nx-page {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap; gap: var(--nx-gap-sm);
+  margin-bottom: var(--nx-gap);
+}
+.nx-page h2 {
+  font-size: var(--nx-fs-title); font-weight: 700; letter-spacing: -.3px;
+  margin: 0; line-height: 1.2;
+}
+.nx-page p {
+  font-size: var(--nx-fs-sub); color: var(--text2);
+  margin: 2px 0 0; line-height: 1.45; max-width: 78ch;
+}
+
+/* ── cartão de indicador ───────────────────────────────────────────────
+   O componente que estava com dois desenhos. Agora é um só.
+
+   ⭐ `min-height` + `flex` NÃO são enfeite: no Dashboard o rótulo "Em
+   andamento" quebrava em duas linhas e empurrava o número pra baixo,
+   deixando aquele cartão fora de registro com os cinco vizinhos.
+   Altura garantida + valor ancorado embaixo resolve isso pra qualquer
+   rótulo, de qualquer tamanho. */
+.nx-kpis {
+  display: grid; gap: var(--nx-gap-sm);
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  margin-bottom: var(--nx-gap);
+}
+.nx-kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--nx-radius); padding: 11px 13px 10px;
+  min-height: 82px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.nx-kpi .nx-kpi-l {
+  font-size: var(--nx-fs-label); font-weight: 500; color: var(--text3);
+  line-height: 1.25;
+  /* rótulo longo trunca em vez de empurrar o número — ver comentário acima */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.nx-kpi .nx-kpi-v {
+  font-size: var(--nx-fs-value); font-weight: 700; color: var(--text);
+  line-height: 1; letter-spacing: -.02em;
+  /* números em largura fixa: a coluna para de dançar quando o valor muda */
+  font-variant-numeric: tabular-nums;
+}
+.nx-kpi .nx-kpi-f {
+  font-size: var(--nx-fs-micro); color: var(--text3); margin-top: 4px;
+}
+
+/* Desvio. Só entra quando há o que resolver — o JS decide, não o markup.
+   Zerado, o cartão não recebe estas classes e volta ao neutro sozinho. */
+.nx-kpi.is-warn   { border-color: var(--amber); box-shadow: inset 3px 0 0 var(--amber); }
+.nx-kpi.is-warn   .nx-kpi-v { color: var(--amber); }
+.nx-kpi.is-danger { border-color: var(--red);   box-shadow: inset 3px 0 0 var(--red); }
+.nx-kpi.is-danger .nx-kpi-v { color: var(--red); }
+
+/* ── barra de filtros ──────────────────────────────────────────────── */
+.nx-toolbar {
+  display: flex; gap: var(--nx-gap-sm); flex-wrap: wrap;
+  margin-bottom: var(--nx-gap);
+}
+.nx-input, .nx-select {
+  height: var(--nx-field-h); padding: 0 11px; font: inherit;
+  font-size: var(--nx-fs-body); color: var(--text);
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--nx-radius-sm); outline: none;
+}
+.nx-input { flex: 1; min-width: 240px; }
+.nx-select { cursor: pointer; padding-right: 8px; }
+.nx-input:focus, .nx-select:focus { border-color: var(--accent); }
+.nx-input::placeholder { color: var(--text3); }
+
+.nx-btn {
+  height: var(--nx-field-h); padding: 0 15px; font: inherit;
+  font-size: var(--nx-fs-body); font-weight: 500; cursor: pointer;
+  color: var(--text); background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--nx-radius-sm);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.nx-btn:hover { border-color: var(--border2); }
+.nx-btn-primary {
+  color: #fff; background: var(--text); border-color: var(--text);
+  font-weight: 600;
+}
+.nx-btn-primary:hover { opacity: .9; border-color: var(--text); }
+.nx-btn:focus-visible, .nx-input:focus-visible, .nx-select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+
+/* ── estado vazio ──────────────────────────────────────────────────────
+   Havia três tratamentos diferentes pra mesma situação (círculo tracejado,
+   faixa cinza, linha de texto). Este é o único. */
+.nx-empty {
+  grid-column: 1 / -1; text-align: center;
+  padding: 34px 20px; border: 1px dashed var(--border2);
+  border-radius: var(--nx-radius); background: transparent;
+}
+.nx-empty-t { font-size: var(--nx-fs-body); color: var(--text2); font-weight: 500; }
+.nx-empty-s { font-size: var(--nx-fs-sub); color: var(--text3); margin-top: 3px; }
+.nx-empty .nx-btn { margin-top: 13px; }
+
+/* ── cartão de conteúdo (lista) ────────────────────────────────────── */
+.nx-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+.nx-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--nx-radius); padding: 13px; cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.nx-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+.nx-card.is-late { border-color: var(--amber); }
+.nx-card-top {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 6px; margin-bottom: 7px;
+}
+.nx-card-kind { font-size: var(--nx-fs-micro); color: var(--text3); font-weight: 500; }
+.nx-card-t {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  line-height: 1.3; margin-bottom: 4px;
+}
+.nx-card-d {
+  font-size: var(--nx-fs-sub); color: var(--text2); line-height: 1.45;
+  margin-bottom: 7px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.nx-card-foot {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 11px; color: var(--text3);
+  border-top: 1px solid var(--border); padding-top: 7px;
+}
+.nx-card-note { font-size: var(--nx-fs-micro); margin-top: 4px; }
+.nx-card-note.ok  { color: var(--green); }
+.nx-card-note.bad { color: var(--red); }
+
+/* ── painel ────────────────────────────────────────────────────────────
+   O bloco "moldura com cabeçalho, corpo e rodapé de ações" estava repetido
+   à mão em style inline em várias abas (só a Conferência tem 4). Sempre o
+   mesmo desenho, sempre redigitado — e por isso divergindo devagar.
+
+   ⚠⚠ NÃO existe `.nx-panel { display:none }` nem variante escondida, DE
+   PROPÓSITO. Muito JS deste app revela painel com `el.style.display = ''`,
+   que só limpa o inline e cai no default do CSS. Se o `display:none` morasse
+   numa classe, esse `= ''` deixaria de revelar e o painel sumiria PARA
+   SEMPRE, calado — sem erro, sem log. Quem esconde é o inline. */
+.nx-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--nx-radius); overflow: hidden;
+  margin-bottom: var(--nx-gap);
+}
+.nx-panel-h {
+  padding: 11px 15px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 9px;
+}
+.nx-panel-t { font-size: var(--nx-fs-body); font-weight: 600; color: var(--text); }
+.nx-panel-s { font-size: var(--nx-fs-sub); color: var(--text3); margin-top: 2px; }
+.nx-panel-b { padding: 14px 15px; }
+.nx-panel-f {
+  padding: 11px 15px; border-top: 1px solid var(--border);
+  display: flex; gap: var(--nx-gap-sm); align-items: center; flex-wrap: wrap;
+}
+
+/* ── aviso fixo ────────────────────────────────────────────────────────
+   Recado que fica na tela o tempo todo (um alerta de procedimento, não um
+   desvio). Pela regra 1 ele NÃO leva cor de fundo: ganha só um filete na
+   lateral. Cor de fundo cheia aqui competia com os cartões que realmente
+   pedem ação — e, sendo permanente, vira paisagem em dois dias.
+   ⭐ Também conserta modo escuro: o desenho antigo cravava #fef3c7 com texto
+   #78350f, que não olhava o tema e continuava amarelo-claro no escuro. */
+.nx-note {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 11px 14px; margin-bottom: var(--nx-gap);
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--text3);
+  border-radius: var(--nx-radius-sm);
+}
+.nx-note.is-warn { border-left-color: var(--amber); }
+.nx-note-t {
+  font-size: var(--nx-fs-label); font-weight: 600; color: var(--text);
+  margin-bottom: 3px;
+}
+.nx-note-b { font-size: var(--nx-fs-sub); color: var(--text2); line-height: 1.55; }
+.nx-note-b code {
+  background: var(--surface2); border: 1px solid var(--border);
+  padding: 1px 5px; border-radius: 3px;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+}
+.nx-note-x {
+  margin-left: auto; flex-shrink: 0; background: transparent; border: none;
+  color: var(--text3); font-size: 17px; line-height: 1; cursor: pointer;
+  padding: 0 2px;
+}
+.nx-note-x:hover { color: var(--text); }
+
+/* ── selo de estado ────────────────────────────────────────────────────
+   Sentence case de propósito: a caixa alta em tudo é justamente um dos
+   problemas que este sistema veio resolver. */
+.nx-pill {
+  font-size: var(--nx-fs-micro); font-weight: 600;
+  padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/* ── desempenho ────────────────────────────────────────────────────────
+   O index.html tem ~42 mil linhas. A troca de aba já é barata: aba inativa
+   usa `display:none`, que o navegador nem mede nem pinta.
+
+   ⚠⚠ NÃO troque esse `display:none` por `content-visibility: hidden`.
+   Circula a recomendação de que `hidden` é "melhor que display:none" porque
+   guarda o estado renderizado — mas o elemento VOLTA A OCUPAR ESPAÇO no
+   layout. Aqui isso empilharia as 41 abas de uma vez e destruiria a tela.
+   O `hidden` serve para painel que já ocupa lugar; não para troca de aba.
+
+   O que sobra de custo é DENTRO da aba aberta: a Conferência e o Sobre têm
+   muito conteúdo abaixo da dobra, medido e pintado sem ninguém olhar.
+   `content-visibility: auto` faz o Chromium pular layout e paint do que está
+   fora da viewport, e voltar a fazer quando chega perto.
+
+   ⚠ `contain-intrinsic-size` é OBRIGATÓRIO junto: sem ele o bloco não
+   renderizado vale 0px de altura, a barra de rolagem encolhe e o scroll pula.
+   O valor é só uma estimativa da altura típica — não precisa ser exato.
+
+   ⚠ NÃO aplicar em quem tem `position: sticky` dentro (o cabeçalho fixo da
+   tabela de resultados da Conferência), nem no wrapper da aba inteira: o
+   recorte quebraria o sticky e o mapa Leaflet, que precisa medir o container.
+   Por isso o alvo são os cartões e painéis, que são blocos fechados. */
+.nx-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+.nx-kpi {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
+}
+/* `contain` isola o recálculo dentro do cartão em vez de propagar pro
+   documento inteiro — ajuda ao filtrar lista grande. */
+.nx-card, .nx-kpi, .nx-empty {
+  contain: layout style;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-card { transition: none; }
+}
+
+
+/* ── design-system: peças usadas pelo Dashboard (12/09/2026) ── */
+/* Vieram de design-system/components/components.css — só o que a aba precisa, escopado por .nx.
+   Regra 1 continua: cor só em desvio. Valores só por var(). */
+.nx .nx-panel-hl { min-width: 0; flex: 1; }
+.nx .nx-panel-a  { display: flex; gap: 8px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+.nx .nx-wrap-row { flex-wrap: wrap; }
+.nx .nx-mono { font-family: 'DM Mono', monospace; }
+.nx .nx-input-link { flex: 0 1 320px; width: 320px; min-width: 180px; height: 34px; font-size: 12px; background: var(--surface2); }
+.nx .nx-panel-a:has(.nx-input-link) { flex-wrap: nowrap; flex-shrink: 1; min-width: 0; }
+.nx .nx-input--num { flex: 0 0 auto; min-width: 0; width: 72px; height: 32px; text-align: right; }
+.nx .nx-select--sm { height: 32px; font-size: 12px; }
+.nx .nx-btn--sm { height: 32px; padding: 0 11px; font-size: 12px; }
+.nx .nx-btn svg, .nx .nx-btn i[data-lucide] { width: 14px; height: 14px; }
+[data-theme="dark"] .nx .nx-btn-primary { color: var(--bg); }
+
+/* painéis lado a lado do topo (lista + distribuição) */
+.nx .nx-dash-duo { display: grid; grid-template-columns: 1fr 260px; gap: var(--nx-gap-sm); align-items: start; }
+.nx .nx-dash-duo > .nx-panel { margin-bottom: var(--nx-gap); }
+@media (max-width: 900px) { .nx .nx-dash-duo { grid-template-columns: 1fr; } }
+
+/* controle segmentado (3m / 6m / 12m) */
+.nx .nx-seg { display: inline-flex; gap: 2px; padding: 2px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--nx-radius-sm); }
+.nx .nx-seg .action-btn {
+  height: 26px; padding: 0 10px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+  color: var(--text3); background: transparent; border: 1px solid transparent; border-radius: 5px;
+  transition: color var(--transition), background var(--transition);
+}
+.nx .nx-seg .action-btn:hover { color: var(--text); }
+.nx .nx-seg .action-btn.is-active { color: var(--text); background: var(--surface); border-color: var(--border2); font-weight: 600; }
+.nx .nx-seg .action-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* cards de análise: neutros; o tom só aparece em desvio */
+.nx .nx-insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--nx-gap-sm); }
+.nx .nx-insight {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--nx-radius);
+  transition: border-color var(--transition);
+}
+.nx .nx-insight:hover { border-color: var(--border2); }
+.nx .nx-insight-i { width: 30px; height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--text3); background: var(--surface2); border-radius: var(--nx-radius-sm); }
+.nx .nx-insight-i svg { width: 16px; height: 16px; }
+.nx .nx-insight-c { flex: 1; min-width: 0; }
+.nx .nx-insight-t { font-size: var(--nx-fs-label); font-weight: 500; color: var(--text3); margin-bottom: 2px; }
+.nx .nx-insight-v { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.2; letter-spacing: -.3px;
+  font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx .nx-insight-d { font-size: var(--nx-fs-micro); color: var(--text2); margin-top: 3px; line-height: 1.4; }
+.nx .nx-insight.is-warn   { border-color: var(--amber); box-shadow: inset 3px 0 0 var(--amber); }
+.nx .nx-insight.is-warn   .nx-insight-v, .nx .nx-insight.is-warn .nx-insight-i { color: var(--amber); }
+.nx .nx-insight.is-danger { border-color: var(--red);   box-shadow: inset 3px 0 0 var(--red); }
+.nx .nx-insight.is-danger .nx-insight-v, .nx .nx-insight.is-danger .nx-insight-i { color: var(--red); }
+.nx .nx-insight.is-ok .nx-insight-v { color: var(--green); }
+
+/* mini indicador no cabeçalho (Demandas) */
+.nx .nx-mini { text-align: right; }
+.nx .nx-mini-v { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.nx .nx-mini-l { font-size: 10.5px; color: var(--text3); }

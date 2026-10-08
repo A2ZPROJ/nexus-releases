@@ -33,6 +33,27 @@
   if (typeof window.require !== 'function') {
     // Silenciar warnings de módulos conhecidos — esses sempre vão cair aqui e tá tudo bem
     var silentStubs = { 'worker_threads': 1, 'stream': 1, '../../package.json': 1, '../package.json': 1, './package.json': 1, 'crypto': 1, 'buffer': 1, 'util': 1, 'events': 1 };
+
+  // ⛔⭐⭐⭐ 08/10/2026 — O `process` DO ELECTRON TEM DE EXISTIR AQUI.
+  //   O HTML traz codigo de Electron, por exemplo a protecao anti-engenharia
+  //   reversa: `const isDev = process.argv && process.argv.includes('--dev')`.
+  //   Sem este remendo o navegador estoura `ReferenceError: process is not
+  //   defined` ANTES de o app montar — medido: 0 abas e a pagina caindo em
+  //   "Usuário não encontrado".
+  //   ⭐ Mesma ideia do `window.require` logo abaixo, que ja existia.
+  //   ⚠ `argv` vazio => isDev = false => a protecao fica LIGADA na web, que e'
+  //   o certo para producao.
+  if (typeof window.process === 'undefined') {
+    window.process = {
+      argv: [],
+      env: {},
+      platform: 'browser',
+      versions: {},
+      nextTick: function (fn) { setTimeout(fn, 0); },
+      cwd: function () { return '/'; },
+      on: function () {},
+    };
+  }
     window.require = function(name){
       if (name === 'xlsx' && window.XLSX) return window.XLSX;
       if (name === 'jszip' && window.JSZip) return window.JSZip;
@@ -520,3 +541,50 @@
 
   console.log('[web-adapter] carregado — ambiente PWA (browser)');
 })();
+
+  // ⭐⭐⭐ 08/10/2026 — NO CELULAR, ABRIR DIRETO NO ALMOXARIFADO.
+  //   Decisao do Lucas: *"so' isso que vamos usar no celular"* (Almoxarifado e Admin).
+  //   ⭐ O Nexus JA' tem o sistema de MODULOS: `openModule(id)` filtra o menu para
+  //   as abas daquele modulo. O do almoxarifado e' `estoque_compras` (2 abas:
+  //   estoque e pedidos). Era por isso que o item vinha com `display:none` — nao
+  //   estava escondido por defeito, **estava esperando escolher o modulo**.
+  //
+  // ⚠⚠ O SEGREDO E' A HORA: chamar cedo demais nao adianta. Medido — com
+  //   `openModule` ja' definido, `MODULES` com os 10 e o item no DOM, a chamada
+  //   em ~500 ms NAO pegava: o boot do app roda depois e desfaz.
+  //   ⭐ O sinal certo e' a tela de modulos virar a aba ativa: e' o proprio app
+  //   dizendo "escolha um modulo". Ai' escolhemos por ele.
+  (function abrirAlmoxarifadoNoCelular() {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+
+    var MODULO = 'estoque_compras';
+    var tentativas = 0;
+
+    function pronto() {
+      if (typeof window.openModule !== 'function') return false;
+      if (!window.MODULES || !window.MODULES[MODULO]) return false;
+      var t = document.getElementById('tab-modulos');
+      // a tela de modulos ESTA' na frente = o app terminou de montar
+      return !!(t && getComputedStyle(t).display !== 'none');
+    }
+
+    var t = setInterval(function () {
+      tentativas++;
+      if (tentativas > 60) { clearInterval(t); return; }      // desiste em ~30 s
+      if (window._currentModule) { clearInterval(t); return; } // ja' escolheu
+      if (!pronto()) return;
+
+      try {
+        window.openModule(MODULO);
+        // ⭐ confere que pegou; se nao, deixa o laco tentar de novo
+        if (window._currentModule !== MODULO) return;
+        clearInterval(t);
+        // o Admin fica FORA de modulo (aba solta): revela a parte.
+        // ⚠ so' mostra se o app nao o tiver escondido por permissao.
+        var adm = document.querySelector('.sb-item[data-tab="admin"]');
+        if (adm && adm.dataset.semPermissao !== '1') adm.style.display = '';
+      } catch (e) {
+        console.warn('[celular] nao consegui abrir o almoxarifado:', e && e.message);
+      }
+    }, 400);
+  })();

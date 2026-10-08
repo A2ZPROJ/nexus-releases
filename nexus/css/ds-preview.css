@@ -1,0 +1,299 @@
+/* ══════════════════════════════════════════════════════════════════════
+   PRÉ-VISUALIZAÇÃO "CLAUDE DESIGN" — TESTE (13/09/2026)
+
+   Só age com <html data-ds-preview="1">. Sem o atributo, este arquivo é
+   inerte e o Nexus fica EXATAMENTE como era. Liga por:
+     npm run dev:design            (variável NEXUS_DS_PREVIEW=1)
+     localStorage.nexus_ds_preview = '1'   (e recarregar)
+
+   O que faz: aplica a cara do export do Claude Design (escuro azul-marinho,
+   sidebar/topbar navy, acento azul, painéis de borda) no app inteiro
+   trocando os TOKENS e a pele da moldura e dos componentes comuns. Como
+   quase todo estilo das abas usa var(--token), todas as abas mudam juntas.
+   O que não muda: estilo com cor cravada no HTML (vai aparecer na revisão).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. tokens — escuro azul-marinho (padrão da pré-visualização) ─────── */
+/* especificidade (0,2,1): vence os blocos do app, inclusive [data-theme="dark"][data-theme-color="x"] (0,2,0).
+   Claro/escuro segue o data-theme do perfil (o botão de tema continua salvando a preferência). */
+html[data-ds-preview="1"][data-theme="dark"] {
+  --bg: #0a0f1e;
+  --bg2: #0d1829;
+  --surface: #0f172a;
+  --surface2: #111827;
+  --border: #1e293b;
+  --border2: #334155;
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --topbar-bg: #060d1a;
+  --topbar-bg2: #060d1a;
+  --topbar-text: #f1f5f9;
+  --gray-900: #334155;
+  --green: #4ade80;  --green-l: rgba(74,222,128,.14);
+  --red: #f87171;    --red-l: rgba(248,113,113,.14);
+  --amber: #fbbf24;  --amber-l: rgba(251,191,36,.14);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.18);
+  --shadow:    0 2px 8px rgba(0,0,0,.20);
+  --shadow-md: 0 4px 18px rgba(0,0,0,.28);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,.40);
+  --ds-sidebar: #060d1a;
+  --ds-overlay: rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+/* acento azul do Claude Design nos temas neutros (A2Z/azul/preto/carvão/platina/safira);
+   temas de marca com cor própria (vermelho = 2S, verde, laranja...) mantêm o acento deles */
+html[data-ds-preview="1"]:is([data-theme-color="a2z"], :not([data-theme-color])) {
+  --accent: #2563eb;
+  --accent-hover: #1e40af;
+  --accent-deep: #1e3a8a;
+  --accent-darker: #172554;
+  --accent-light: rgba(37,99,235,.14);
+  --accent-mid: #60a5fa;
+  --accent-soft: rgba(37,99,235,.08);
+  --accent-glow: rgba(37,99,235,.35);
+  --accent-ring: rgba(37,99,235,.45);
+}
+/* no escuro, temas de marca usam fundo de acento translúcido (o claro pastel estourava) */
+html[data-ds-preview="1"][data-theme="dark"] {
+  --accent-light: color-mix(in srgb, var(--accent) 16%, transparent);
+  --accent-soft: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+/* claro do Claude Design (se o usuário alternar o modo) */
+html[data-ds-preview="1"]:not([data-theme="dark"]) {
+  --bg: #f8fafc; --bg2: #f1f5f9;
+  --surface: #ffffff; --surface2: #f1f5f9;
+  --border: #e2e8f0; --border2: #cbd5e1;
+  --text: #0f172a; --text2: #64748b; --text3: #94a3b8;
+  --topbar-bg: #ffffff; --topbar-bg2: #ffffff; --topbar-text: #0f172a;
+  --green: #16a34a; --red: #dc2626; --amber: #d97706;
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.06);
+  --shadow:    0 2px 8px rgba(15,23,42,.08);
+  --shadow-md: 0 6px 20px rgba(15,23,42,.10);
+  --shadow-lg: 0 20px 60px rgba(15,23,42,.16);
+  --ds-sidebar: #ffffff;
+  --ds-overlay: rgba(15,23,42,.32);
+  color-scheme: light;
+}
+
+html[data-ds-preview="1"] body { background: var(--bg); color: var(--text); }
+
+/* ── 2. moldura: sidebar ──────────────────────────────────────────────── */
+html[data-ds-preview="1"] .sidebar {
+  background: var(--ds-sidebar);
+  color: var(--text);
+  border-right: 1px solid var(--border);
+  box-shadow: none;
+}
+html[data-ds-preview="1"] .sidebar-brand { border-bottom: 1px solid var(--border); padding: 14px 16px 12px; min-height: 56px; }
+html[data-ds-preview="1"] .sidebar-brand-logo { color: #3b82f6; filter: none; width: 26px; height: 26px; }
+html[data-ds-preview="1"] .sidebar-brand-text { color: var(--text); font-size: 15px; letter-spacing: -.3px; }
+html[data-ds-preview="1"] .sidebar-brand-text .x-accent { color: #3b82f6; }
+html[data-ds-preview="1"] .sidebar-nav { padding: 8px 8px 12px; }
+html[data-ds-preview="1"] .sidebar-nav::-webkit-scrollbar-thumb { background: var(--border2); }
+html[data-ds-preview="1"] .sb-item {
+  color: var(--text2); border-radius: 6px; min-height: 40px; padding: 0 11px; font-size: 13px;
+}
+html[data-ds-preview="1"] .sb-item::before { display: none; }
+html[data-ds-preview="1"] .sb-item:hover:not(.active) { background: var(--surface2); color: var(--text); padding-left: 11px; }
+html[data-ds-preview="1"] .sb-item.active {
+  background: var(--accent-light); color: var(--accent-mid, var(--accent)); font-weight: 600; box-shadow: none;
+}
+html[data-ds-preview="1"]:not([data-theme="dark"]) .sb-item.active { color: var(--accent); }
+html[data-ds-preview="1"] .sb-item .sb-badge {
+  background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber); border-radius: 999px;
+}
+html[data-ds-preview="1"] .sidebar-footer { border-top: 1px solid var(--border); }
+html[data-ds-preview="1"] .sb-collapse-btn { background: transparent; color: var(--text3); }
+html[data-ds-preview="1"] .sb-collapse-btn:hover { background: var(--surface2); color: var(--text); }
+
+/* ── 3. moldura: topbar e barra de status ─────────────────────────────── */
+html[data-ds-preview="1"] .topbar,
+html[data-ds-preview="1"] .topbar.scrolled {
+  background: var(--topbar-bg); border-bottom: 1px solid var(--border); box-shadow: none;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+html[data-ds-preview="1"] .breadcrumb { color: var(--text3); }
+html[data-ds-preview="1"] .breadcrumb-current { color: var(--text); font-weight: 600; }
+html[data-ds-preview="1"] .cmd-hint-btn {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text3);
+  min-width: 230px; height: 32px; border-radius: 6px; justify-content: flex-start;
+}
+html[data-ds-preview="1"] .cmd-hint-btn:hover { border-color: var(--border2); }
+html[data-ds-preview="1"] .cmd-hint-btn kbd { margin-left: auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text3); }
+html[data-ds-preview="1"] .theme-btn { background: var(--surface) !important; border-color: var(--border) !important; }
+html[data-ds-preview="1"] .status-bar {
+  background: var(--topbar-bg); border-top: 1px solid var(--border); color: var(--text3);
+  font-family: 'DM Sans', sans-serif; font-size: 10.5px;
+}
+
+/* ── 4. componentes comuns ────────────────────────────────────────────── */
+/* cartão: borda, sem sombra em repouso; sombra só no hover */
+html[data-ds-preview="1"] .card,
+html[data-ds-preview="1"] .kpi-card,
+html[data-ds-preview="1"] .nx-card,
+html[data-ds-preview="1"] .nx-kpi,
+html[data-ds-preview="1"] .nx-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: none;
+}
+html[data-ds-preview="1"] .card:hover,
+html[data-ds-preview="1"] .nx-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+html[data-ds-preview="1"] .kpi-card::before { display: none; }
+html[data-ds-preview="1"] .nx-kpi { padding: 12px 14px 11px; min-height: 104px; }
+html[data-ds-preview="1"] .nx-kpi .nx-kpi-l { font-size: 12.5px; }
+html[data-ds-preview="1"] .nx-kpi .nx-kpi-v { font-size: 28px; }
+
+/* botões */
+html[data-ds-preview="1"] .action-btn,
+html[data-ds-preview="1"] .ghost-btn,
+html[data-ds-preview="1"] .nx-btn {
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
+  transition: border-color .18s, background .18s, opacity .18s, transform .18s;
+}
+html[data-ds-preview="1"] .action-btn:hover,
+html[data-ds-preview="1"] .ghost-btn:hover,
+html[data-ds-preview="1"] .nx-btn:hover { border-color: var(--border2); }
+html[data-ds-preview="1"] .copy-btn,
+html[data-ds-preview="1"] .btn-primary,
+html[data-ds-preview="1"] .nx-btn-primary {
+  background: var(--accent) !important; color: #fff !important; border: 1px solid var(--accent) !important;
+  border-radius: 6px; font-weight: 600; box-shadow: 0 4px 18px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,.10);
+}
+html[data-ds-preview="1"] .copy-btn:hover,
+html[data-ds-preview="1"] .btn-primary:hover,
+html[data-ds-preview="1"] .nx-btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+html[data-ds-preview="1"] .green-btn { background: var(--green) !important; color: #06210f !important; border-color: var(--green) !important; }
+
+/* campos */
+html[data-ds-preview="1"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-ds-preview="1"] select,
+html[data-ds-preview="1"] textarea {
+  background-color: var(--surface); color: var(--text); border-color: var(--border2);
+}
+html[data-ds-preview="1"] input:focus,
+html[data-ds-preview="1"] select:focus,
+html[data-ds-preview="1"] textarea:focus { border-color: var(--accent) !important; outline: none; }
+html[data-ds-preview="1"] input::placeholder, html[data-ds-preview="1"] textarea::placeholder { color: var(--text3); }
+
+/* tabelas */
+html[data-ds-preview="1"] table th {
+  color: var(--text3); font-weight: 600; font-size: 12px; background: var(--surface);
+  border-bottom: 1px solid var(--border); text-transform: none; letter-spacing: 0;
+}
+html[data-ds-preview="1"] table td { border-bottom-color: var(--border); }
+html[data-ds-preview="1"] table tbody tr:hover td { background: var(--surface2); }
+
+/* modais, menus, paleta */
+html[data-ds-preview="1"] .modal-overlay { background: var(--ds-overlay); backdrop-filter: blur(6px); }
+html[data-ds-preview="1"] .modal-box,
+html[data-ds-preview="1"] .cmd-palette,
+html[data-ds-preview="1"] .notif-panel,
+html[data-ds-preview="1"] .theme-menu,
+html[data-ds-preview="1"] .ctx-menu {
+  background: var(--surface) !important; border: 1px solid var(--border2) !important; box-shadow: var(--shadow-lg) !important;
+}
+html[data-ds-preview="1"] .modal-box { border-radius: 14px; }
+html[data-ds-preview="1"] .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+html[data-ds-preview="1"] .empty-state,
+html[data-ds-preview="1"] .nx-empty { border: 1px dashed var(--border2); background: transparent; }
+html[data-ds-preview="1"] .skeleton { background: linear-gradient(90deg, var(--surface2) 0%, var(--border) 50%, var(--surface2) 100%); background-size: 200% 100%; }
+html[data-ds-preview="1"] ::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* ── 5. Dashboard no layout do Claude Design ──────────────────────────── */
+.ds-only { display: none; }
+html[data-ds-preview="1"] .ds-only { display: block; }
+html[data-ds-preview="1"] .ds-hide { display: none !important; }
+
+html[data-ds-preview="1"] .ds-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+html[data-ds-preview="1"] .ds-hero h2 { font-size: 22px; font-weight: 700; letter-spacing: -.3px; margin: 0; color: var(--text); }
+html[data-ds-preview="1"] .ds-hero p { font-size: 13px; color: var(--text2); margin: 3px 0 0; }
+html[data-ds-preview="1"] .ds-hero-a { display: flex; gap: 8px; flex-wrap: wrap; }
+html[data-ds-preview="1"] .ds-btn {
+  height: 38px; padding: 0 15px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 500; color: var(--text); background: transparent;
+  border: 1px solid var(--border2); border-radius: 6px; transition: opacity .18s, transform .18s, border-color .18s;
+}
+html[data-ds-preview="1"] .ds-btn:hover { border-color: var(--text3); }
+html[data-ds-preview="1"] .ds-btn svg { width: 15px; height: 15px; }
+html[data-ds-preview="1"] .ds-btn--primary {
+  color: #fff; background: var(--accent); border-color: var(--accent); font-weight: 600;
+  box-shadow: 0 4px 18px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,.10);
+}
+html[data-ds-preview="1"] .ds-btn--primary:hover { opacity: .9; transform: translateY(-1px); border-color: var(--accent); }
+html[data-ds-preview="1"] .ds-btn--ghost { border-color: transparent; color: var(--text2); height: 30px; padding: 0 10px; font-size: 12px; }
+html[data-ds-preview="1"] .ds-btn--ghost:hover { background: var(--surface2); color: var(--text); border-color: transparent; }
+
+html[data-ds-preview="1"] .ds-note {
+  display: flex; gap: 10px; padding: 11px 14px; margin-bottom: 16px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber);
+}
+html[data-ds-preview="1"] .ds-note-t { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+html[data-ds-preview="1"] .ds-note-b { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+
+html[data-ds-preview="1"] .ds-row { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 10px; align-items: start; margin-bottom: 16px; }
+@media (max-width: 1000px) { html[data-ds-preview="1"] .ds-row { grid-template-columns: 1fr; } }
+html[data-ds-preview="1"] .ds-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+html[data-ds-preview="1"] .ds-panel-h { display: flex; align-items: center; gap: 9px; padding: 11px 15px; border-bottom: 1px solid var(--border); }
+html[data-ds-preview="1"] .ds-panel-hl { flex: 1; min-width: 0; }
+html[data-ds-preview="1"] .ds-panel-t { font-size: 13px; font-weight: 600; color: var(--text); }
+html[data-ds-preview="1"] .ds-panel-s { font-size: 12.5px; color: var(--text3); margin-top: 2px; }
+html[data-ds-preview="1"] .ds-panel-x { font-size: 10.5px; color: var(--text3); font-variant-numeric: tabular-nums; }
+html[data-ds-preview="1"] .ds-panel-b { padding: 14px 15px; }
+html[data-ds-preview="1"] .ds-panel-b--flush { padding: 0; }
+
+html[data-ds-preview="1"] .ds-bars { display: flex; align-items: flex-end; gap: 6px; height: 132px; }
+html[data-ds-preview="1"] .ds-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+html[data-ds-preview="1"] .ds-bar i { display: block; width: 100%; border-radius: 4px 4px 0 0; background: var(--border2); min-height: 2px; }
+html[data-ds-preview="1"] .ds-bar.is-now i { background: var(--accent); }
+html[data-ds-preview="1"] .ds-bar span { font-size: 9.5px; color: var(--text3); }
+
+html[data-ds-preview="1"] .ds-donut { display: flex; align-items: center; gap: 18px; }
+html[data-ds-preview="1"] .ds-donut-ring {
+  width: 112px; height: 112px; border-radius: 50%; flex-shrink: 0;
+  -webkit-mask: radial-gradient(circle, transparent 56%, #000 57%); mask: radial-gradient(circle, transparent 56%, #000 57%);
+}
+html[data-ds-preview="1"] .ds-donut-l { display: grid; gap: 7px; flex: 1; min-width: 0; }
+html[data-ds-preview="1"] .ds-donut-i { display: flex; align-items: center; gap: 8px; }
+html[data-ds-preview="1"] .ds-donut-i i { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+html[data-ds-preview="1"] .ds-donut-i span { font-size: 12.5px; color: var(--text2); flex: 1; }
+html[data-ds-preview="1"] .ds-donut-i b { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+html[data-ds-preview="1"] .ds-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+html[data-ds-preview="1"] .ds-table th { text-align: left; padding: 9px 12px; font-size: 12px; font-weight: 600; color: var(--text3); border-bottom: 1px solid var(--border); white-space: nowrap; }
+html[data-ds-preview="1"] .ds-table td { padding: 10px 12px; color: var(--text); border-bottom: 1px solid var(--border); white-space: nowrap; }
+html[data-ds-preview="1"] .ds-table tr:last-child td { border-bottom: none; }
+html[data-ds-preview="1"] .ds-table .r { text-align: right; font-variant-numeric: tabular-nums; }
+html[data-ds-preview="1"] .ds-table .m { font-family: 'DM Mono', monospace; }
+html[data-ds-preview="1"] .ds-table .w { white-space: normal; }
+html[data-ds-preview="1"] .ds-pill { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+html[data-ds-preview="1"] .ds-empty { padding: 26px 14px; text-align: center; color: var(--text3); font-size: 12.5px; }
+
+html[data-ds-preview="1"] .ds-feed { display: grid; gap: 12px; }
+html[data-ds-preview="1"] .ds-feed-i { display: flex; gap: 10px; align-items: flex-start; }
+html[data-ds-preview="1"] .ds-feed-av { width: 26px; height: 26px; border-radius: 50%; background: var(--surface2); color: var(--text2); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+html[data-ds-preview="1"] .ds-feed-t { font-size: 12.5px; color: var(--text2); line-height: 1.45; }
+html[data-ds-preview="1"] .ds-feed-q { font-size: 10.5px; color: var(--text3); margin-top: 2px; }
+
+html[data-ds-preview="1"] .ds-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin-bottom: 16px; }
+html[data-ds-preview="1"] .ds-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 13px; cursor: pointer; transition: border-color .18s, box-shadow .18s; }
+html[data-ds-preview="1"] .ds-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+html[data-ds-preview="1"] .ds-card.is-late { border-color: var(--amber); }
+html[data-ds-preview="1"] .ds-card-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 7px; }
+html[data-ds-preview="1"] .ds-card-k { font-size: 10.5px; color: var(--text3); font-weight: 500; }
+html[data-ds-preview="1"] .ds-card-t { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+html[data-ds-preview="1"] .ds-card-d { font-size: 12.5px; color: var(--text2); line-height: 1.45; margin-bottom: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-ds-preview="1"] .ds-prog { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin: 2px 0 8px; }
+html[data-ds-preview="1"] .ds-prog i { display: block; height: 100%; background: var(--accent); }
+html[data-ds-preview="1"] .ds-card.is-late .ds-prog i { background: var(--amber); }
+html[data-ds-preview="1"] .ds-card-f { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text3); border-top: 1px solid var(--border); padding-top: 7px; }
+
+/* ── 6. aba Diretoria: tem paleta própria (--dd-*); na camada ela usa os tokens do Claude Design ── */
+html[data-ds-preview="1"] #tab-diretoria {
+  --dd-bg: var(--bg); --dd-surface: var(--surface); --dd-sf2: var(--surface2); --dd-sf3: var(--border);
+  --dd-bd: var(--border); --dd-bd2: var(--border2);
+  --dd-tx: var(--text); --dd-mu: var(--text2); --dd-ct: var(--text3);
+  --dd-sel-bg: var(--surface); --dd-cg: color-mix(in srgb, var(--text) 7%, transparent);
+  --dd-blue: var(--accent);
+  font-family: inherit;
+}

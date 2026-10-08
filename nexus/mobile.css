@@ -1088,3 +1088,24 @@
      ⭐ No celular a animação de entrada não faz falta e ainda custa quadro. */
   html body .tab-content { transform: none !important; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   08/10/2026 — O QUE NÃO FAZ SENTIDO NO CELULAR
+   ⭐ A escolha do que aparece no menu NÃO está aqui: quem faz isso é o sistema
+   de MÓDULOS que o Nexus já tem (`openModule('estoque_compra')`, chamado pelo
+   web-adapter quando a tela é pequena). Eu tinha escrito uma regra de CSS para
+   esconder tudo menos estoque e admin — e ela escondia o "Pedidos", que faz
+   parte do mesmo módulo. ⚠ Além disso seria uma segunda verdade sobre o que
+   aparece, brigando com a do app: o mesmo defeito que passamos o dia inteiro
+   consertando em outros lugares.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* o que é de teclado e não existe no toque */
+  html body .sb-collapse-btn,     /* "Recolher" (Ctrl+B) */
+  html body #tourOverlay,         /* o tour explica Ctrl+B e Ctrl+K */
+  html body #whatsNewModal {
+    display: none !important;
+  }
+  /* alvo de toque confortável nos itens do menu que o módulo deixar visíveis */
+  html body .sb-item { min-height: 52px !important; font-size: 15px !important; }
+}
