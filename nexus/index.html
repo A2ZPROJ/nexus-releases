@@ -15,11 +15,14 @@
 <title>Nexus — A2Z Projetos</title>
 
 <!-- Adapter web e login ANTES de tudo: expõem window.electronAPI e __LICENSE__ -->
-<script src="web-adapter.js?v=4"></script>
-<script src="web-login.js?v=3"></script>
+<script src="web-adapter.js?v=20261008"></script>
+<script src="web-login.js?v=20261008"></script>
 
 <!-- CSS responsivo mobile -->
-<link rel="stylesheet" href="mobile.css?v=9"/>
+<!-- ⚠ AO PUBLICAR: troque o ?v= destes tres arquivos. Eles ficaram em
+     v=9/v=4/v=3 desde junho e, com a URL igual, o celular servia a copia
+     guardada — conserto nenhum chegava em quem ja tinha aberto o site. -->
+  <link rel="stylesheet" href="mobile.css?v=20261008"/>
 
 <!-- Libs adicionais que o desktop tem via require() mas precisam de CDN no browser -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
